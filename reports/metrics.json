@@ -1,0 +1,161 @@
+{
+  "image": {
+    "audit": {
+      "counts": {
+        "test": 400,
+        "train": 614,
+        "val": 180
+      },
+      "cross_split_identical_files": 0,
+      "train_test_trial_overlap": []
+    },
+    "selected": "svm",
+    "validation_accuracy": {
+      "svm": 0.9944444444444445,
+      "rf": 0.9611111111111111
+    },
+    "test_accuracy": 0.9825,
+    "test_report": {
+      "Green": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 100.0
+      },
+      "Light": {
+        "precision": 1.0,
+        "recall": 1.0,
+        "f1-score": 1.0,
+        "support": 100.0
+      },
+      "Medium": {
+        "precision": 0.9603960396039604,
+        "recall": 0.97,
+        "f1-score": 0.9651741293532339,
+        "support": 100.0
+      },
+      "Dark": {
+        "precision": 0.9696969696969697,
+        "recall": 0.96,
+        "f1-score": 0.964824120603015,
+        "support": 100.0
+      },
+      "accuracy": 0.9825,
+      "macro avg": {
+        "precision": 0.9825232523252325,
+        "recall": 0.9824999999999999,
+        "f1-score": 0.9824995624890622,
+        "support": 400.0
+      },
+      "weighted avg": {
+        "precision": 0.9825232523252325,
+        "recall": 0.9825,
+        "f1-score": 0.9824995624890621,
+        "support": 400.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        100,
+        0,
+        0,
+        0
+      ],
+      [
+        0,
+        100,
+        0,
+        0
+      ],
+      [
+        0,
+        0,
+        97,
+        3
+      ],
+      [
+        0,
+        0,
+        4,
+        96
+      ]
+    ]
+  },
+  "audio": {
+    "audit": {
+      "counts": {
+        "test": 631,
+        "val": 592,
+        "train": 2334
+      },
+      "cross_split_identical_files": 0,
+      "train_test_trial_overlap": [
+        "1yunnan",
+        "2yunnan",
+        "3ethiopia",
+        "4ethiopia",
+        "5kenya",
+        "6kenya",
+        "7kenya",
+        "8ethiopia"
+      ]
+    },
+    "selected": "rf",
+    "validation_accuracy": {
+      "svm": 0.893581081081081,
+      "rf": 0.9138513513513513
+    },
+    "test_accuracy": 0.9096671949286846,
+    "test_report": {
+      "Background": {
+        "precision": 0.9853372434017595,
+        "recall": 0.9627507163323782,
+        "f1-score": 0.9739130434782609,
+        "support": 349.0
+      },
+      "First Crack": {
+        "precision": 0.7692307692307693,
+        "recall": 0.8695652173913043,
+        "f1-score": 0.8163265306122449,
+        "support": 115.0
+      },
+      "Second Crack": {
+        "precision": 0.8625,
+        "recall": 0.8263473053892215,
+        "f1-score": 0.8440366972477065,
+        "support": 167.0
+      },
+      "accuracy": 0.9096671949286846,
+      "macro avg": {
+        "precision": 0.8723560042108428,
+        "recall": 0.8862210797043013,
+        "f1-score": 0.8780920904460707,
+        "support": 631.0
+      },
+      "weighted avg": {
+        "precision": 0.9134417375733004,
+        "recall": 0.9096671949286846,
+        "f1-score": 0.9108198599598862,
+        "support": 631.0
+      }
+    },
+    "confusion_matrix": [
+      [
+        336,
+        5,
+        8
+      ],
+      [
+        1,
+        100,
+        14
+      ],
+      [
+        4,
+        25,
+        138
+      ]
+    ]
+  },
+  "fusion": "Not evaluated: no paired ground truth. Validation weights are heuristic across different tasks."
+}

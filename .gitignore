@@ -1,0 +1,15 @@
+/.venv/
+__pycache__/
+.pytest_cache/
+*.pyc
+/markdown/
+/sumber/
+/coffee-roasting-acoustic-dataset*/
+/gpiosenka_coffee-bean-dataset-resized-224-x-224/
+/data/
+/outputs/
+*.zip
+*.pdf
+.ipynb_checkpoints/
+kaggle.json
+.env
