@@ -42,6 +42,18 @@ Pindahkan/import [notebooks/Coffee_Roast_Colab.ipynb](https://colab.research.goo
 - Background: jika tahap diketahui, masukkan `Green` (sebelum first crack) atau `Medium` (di antara dua crack). Tanpa konteks, mengikuti distribusi gambar.
 - Evaluasi fusion memerlukan gambar, audio, dan label dari batch roasting yang sama.
 
+### Simulasi fusion Light–Dark dengan pairing sintetis
+
+Notebook menambahkan eksperimen otomatis dua kelas: gambar Light dipasangkan dengan audio First Crack, gambar Dark dengan Second Crack. Green, Medium, dan Background dikeluarkan hanya dari simulasi ini. Eksperimen gambar empat kelas dan audio tiga kelas tetap ditampilkan terpisah.
+
+Pasangan dibuat berdasarkan label di dalam split validasi dan test masing-masing, memakai seed 42–46. Setiap seed memakai jumlah pasangan seimbang antarkelas, sebanyak kelas/modalitas dengan sampel paling sedikit pada split tersebut, tanpa pengulangan file dalam satu split/seed. File dapat muncul kembali pada seed lain. Tidak ada pasangan lintas split, dan tidak ada pasangan train yang diperlukan karena model unimodal sudah dilatih pada train; fusion hanya menggabungkan probabilitas.
+
+Model gambar/audio yang sudah dipilih dari validasi digunakan kembali. Probabilitas dibatasi dan dinormalisasi ulang menjadi Light/Dark (First/Second Crack untuk audio), sehingga skor ini bersifat kondisional pada dua kelas tersebut. Bobot gambar dicari pada grid 0–1 dengan langkah 0,05, menggunakan macro F1 pasangan validasi saja; bobot audio adalah 1 dikurangi bobot gambar. Jika seri, dipilih bobot paling dekat 0,5. Semua seed dilaporkan, tanpa memilih seed berdasarkan test. Gambar saja, audio saja, dan fusion dibandingkan pada pasangan test identik; ditampilkan rata-rata dan standar deviasi antar-seed serta confusion matrix seed pertama.
+
+**Batasan:** ini simulasi pada pasangan sintetis yang kelasnya sengaja dibuat konsisten, bukan rekaman gambar–audio dari batch roasting yang sama. Label digunakan untuk membangun pasangan, sehingga kesesuaian kedua modalitas sudah diasumsikan. Skor tidak membuktikan akurasi fusion pada roasting nyata atau manfaat sinkronisasi waktu. First/Second Crack dipakai sebagai proxy Light/Dark, bukan pengukuran roast independen. Variasi antar-seed bukan confidence interval karena file test dipakai kembali. Irisan trial audio pada split penerbit juga tetap membatasi generalisasi.
+
+Diagram metode di atas menggambarkan rancangan ideal dengan data berpasangan asli; simulasi ini tidak memenuhi asumsi same batch/stage pada diagram. Kesimpulan notebook secara eksplisit membedakan simulasi dan evaluasi roasting nyata.
+
 ## Berkas hasil
 
 - `outputs/metrics.json`: metrik dan audit.

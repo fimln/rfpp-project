@@ -133,12 +133,118 @@ for name, result in results.items():
     duplicates = result['audit']['cross_split_identical_files']
     if duplicates:
         lines.append(f"  **Peringatan:** ditemukan {duplicates} salinan identik lintas split; hasil berisiko bocor.")
-lines.extend(['', '**Fusion belum dievaluasi** karena tidak tersedia test berpasangan. Skor di atas adalah evaluasi masing-masing modalitas.'])
+lines.extend(['', '**Fusion pada pasangan roasting nyata belum dievaluasi** karena tidak tersedia test berpasangan asli. Skor di atas adalah evaluasi masing-masing modalitas. Simulasi Light–Dark berbasis pasangan sintetis ditampilkan pada bagian berikutnya.'])
 conclusion = '\\n'.join(lines)
 display(Markdown(conclusion))
 Path('outputs/conclusion.md').write_text(conclusion, encoding='utf-8')
 ''')]
 cells[7:7] = visual_cells
+simulation_cells = [n.v4.new_markdown_cell('''## Simulasi fusion Light–Dark: pasangan sintetis
+Pairing otomatis berdasarkan label: Light–First Crack dan Dark–Second Crack, hanya dalam split yang sama. Green/Medium/Background tidak digunakan di simulasi ini. Model unimodal tetap model empat/tiga kelas; probabilitas dinormalisasi ulang ke dua kelas. Bobot fusion ditentukan dari validasi, bukan test. Semua seed dilaporkan.
+
+**Bukan pasangan batch roasting nyata.** Label digunakan untuk membuat kedua modalitas konsisten kelasnya; hasil hanya berlaku pada simulasi ini. Standar deviasi antar-seed bukan confidence interval. Diagram same batch/stage belum terpenuhi dan irisan trial audio tetap ada.
+'''), n.v4.new_code_cell('''import joblib
+from sklearn.metrics import accuracy_score, f1_score, confusion_matrix
+from coffee.features import image_features, audio_features
+
+SIM_COMPLETED = False
+if not globals().get('RUN_COMPLETED', False):
+    raise RuntimeError('Jalankan training pada sesi ini sampai selesai.')
+Path('outputs/synthetic_fusion.json').unlink(missing_ok=True)
+SEEDS = [42, 43, 44, 45, 46]
+LABELS = ['Light', 'Dark']
+pools = {}
+for modality, selected, feature in [('image', ['Light', 'Dark'], image_features),
+                                    ('audio', ['First Crack', 'Second Crack'], audio_features)]:
+    bundle = joblib.load(f'outputs/{modality}.joblib')
+    manifest = json.loads(Path(f'outputs/{modality}_manifest.json').read_text())
+    columns = [bundle['classes'].index(label) for label in selected]
+    for split in ['val', 'test']:
+        for label, column in enumerate(columns):
+            rows = [row for row in manifest if row['split'] == split and row['label'] == column]
+            if not rows:
+                raise ValueError(f'Tidak ada data {modality}/{split}/{selected[label]}')
+            probabilities = bundle['model'].predict_proba([feature(row['path']) for row in rows])[:, columns]
+            probabilities /= probabilities.sum(axis=1, keepdims=True)
+            pools[modality, split, label] = (rows, probabilities)
+print('Probabilitas validasi dan test siap; tidak ada pelatihan ulang.')
+'''), n.v4.new_code_cell('''if not globals().get('RUN_COMPLETED', False):
+    raise RuntimeError('Training run ini harus berhasil terlebih dahulu.')
+simulation = []
+for seed in SEEDS:
+    paired = {}
+    for split in ['val', 'test']:
+        rng = np.random.default_rng(seed + (10000 if split == 'test' else 0))
+        count = min(len(pools[modality, split, label][0])
+                    for modality in ['image', 'audio'] for label in range(2))
+        image_p, audio_p, truth, pairs = [], [], [], []
+        for label in range(2):
+            ir, ip = pools['image', split, label]
+            ar, ap = pools['audio', split, label]
+            ii, ai = rng.permutation(len(ir))[:count], rng.permutation(len(ar))[:count]
+            image_p.extend(ip[ii]); audio_p.extend(ap[ai]); truth.extend([label] * count)
+            pairs.extend({'seed': seed, 'split': split, 'label': LABELS[label],
+                          'image': ir[i]['path'], 'audio': ar[a]['path']} for i, a in zip(ii, ai))
+        Path(f'outputs/synthetic_pairs_{split}_{seed}.json').write_text(json.dumps(pairs, indent=2), encoding='utf-8')
+        paired[split] = (np.asarray(image_p), np.asarray(audio_p), np.asarray(truth))
+    vi, va, vy = paired['val']
+    weights = sorted(np.linspace(0, 1, 21), key=lambda w: abs(w - .5))
+    weight = max(weights, key=lambda w: f1_score(vy, (w * vi + (1-w) * va).argmax(axis=1), average='macro'))
+    ti, ta, ty = paired['test']
+    result = {'seed': seed, 'image_weight': float(weight), 'test_pairs': len(ty), 'methods': {}}
+    for method, probability in [('Gambar', ti), ('Audio', ta), ('Fusion sintetis', weight*ti + (1-weight)*ta)]:
+        prediction = probability.argmax(axis=1)
+        result['methods'][method] = {'accuracy': float(accuracy_score(ty, prediction)),
+                                    'macro_f1': float(f1_score(ty, prediction, average='macro')),
+                                    'confusion_matrix': confusion_matrix(ty, prediction, labels=[0, 1]).tolist()}
+    simulation.append(result)
+Path('outputs/synthetic_fusion.json').write_text(json.dumps({'limitation': 'Class-conditioned synthetic pairs; not same-batch roast evaluation', 'runs': simulation}, indent=2), encoding='utf-8')
+SIM_COMPLETED = True
+'''), n.v4.new_code_cell('''if not globals().get('RUN_COMPLETED', False) or not globals().get('SIM_COMPLETED', False):
+    raise RuntimeError('Training dan simulasi run ini harus berhasil terlebih dahulu.')
+methods = ['Gambar', 'Audio', 'Fusion sintetis']
+table = ['| Seed | Bobot gambar | Jumlah test | F1 gambar | F1 audio | F1 fusion sintetis |',
+         '| --- | ---: | ---: | ---: | ---: | ---: |']
+for run in simulation:
+    values = [f"{run['methods'][method]['macro_f1']:.2%}" for method in methods]
+    table.append(f"| {run['seed']} | {run['image_weight']:.2f} | {run['test_pairs']} | " + ' | '.join(values) + ' |')
+display(Markdown('\\n'.join(table)))
+fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+for ax, metric in zip(axes, ['accuracy', 'macro_f1']):
+    values = np.asarray([[run['methods'][method][metric] for method in methods] for run in simulation])
+    bars = ax.bar(methods, values.mean(axis=0), yerr=values.std(axis=0), capsize=5,
+                  color=['#2563eb', '#0d9488', '#d97706'])
+    ax.bar_label(bars, labels=[f'{x:.2%}' for x in values.mean(axis=0)], padding=7)
+    ax.set_ylim(0, 1.15)
+    ax.set_title(metric + ': rata-rata ± SD antar-seed')
+fig.suptitle('SIMULASI Light–Dark, bukan evaluasi roasting nyata')
+fig.tight_layout()
+fig.savefig('outputs/synthetic_fusion_scores.png', dpi=150, bbox_inches='tight')
+plt.show(); plt.close(fig)
+fig, axes = plt.subplots(1, 3, figsize=(12, 4))
+for ax, method in zip(axes, methods):
+    matrix = np.asarray(simulation[0]['methods'][method]['confusion_matrix'])
+    ax.imshow(matrix, cmap='Blues', vmin=0, vmax=max(1, matrix.sum(axis=1).max()))
+    for i in range(2):
+        for j in range(2):
+            ax.text(j, i, str(matrix[i, j]), ha='center', va='center',
+                    color='white' if matrix[i, j] > matrix.sum(axis=1).max()/2 else 'black')
+    ax.set_xticks([0, 1], LABELS); ax.set_yticks([0, 1], LABELS)
+    ax.set_xlabel('Prediksi'); ax.set_ylabel('Aktual sintetis'); ax.set_title(method)
+fig.suptitle(f"Confusion matrix simulasi, seed {SEEDS[0]} (tidak dipilih berdasarkan skor)")
+fig.tight_layout()
+fig.savefig('outputs/synthetic_fusion_confusion.png', dpi=150, bbox_inches='tight')
+plt.show(); plt.close(fig)
+means = {method: np.mean([run['methods'][method]['macro_f1'] for run in simulation]) for method in methods}
+delta = means['Fusion sintetis'] - max(means['Gambar'], means['Audio'])
+summary = (f"### Kesimpulan simulasi run ini\\n\\nMacro F1 rata-rata fusion sintetis: **{means['Fusion sintetis']:.2%}**. "
+           f"Selisih terhadap baseline unimodal terbaik: **{delta*100:+.2f} poin persentase**. "
+           'Hasil ini hanya untuk pasangan sintetis yang dibentuk berdasarkan label, bukan bukti peningkatan pada roasting nyata. '
+           'Variasi antar-seed memakai ulang file test dan bukan confidence interval.')
+display(Markdown(summary))
+Path('outputs/synthetic_conclusion.md').write_text(summary, encoding='utf-8')
+''')]
+cells[-2:-2] = simulation_cells
 nb.cells=cells
 nb.metadata={'kernelspec':{'display_name':'Python 3','language':'python','name':'python3'},'language_info':{'name':'python','version':'3.12'}}
 n.validate(nb)
