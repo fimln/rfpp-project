@@ -9,12 +9,7 @@ Anggota Kelompok:
 4. Alfi Maulana Akbar (25/574622/PPA/07253)
 
 ## Google Colab
-
-Dependensi NumPy dibatasi `<2.5` dan Pillow `<13` agar memenuhi batas Numba dan Gradio bawaan runtime yang dilaporkan. Jika runtime telanjur memasang NumPy 2.5/Pillow 13, jalankan ulang sel instalasi dari notebook terbaru, lalu **Runtime > Restart session** sebelum menjalankan sel berikutnya.
-
-Buka [notebooks/Coffee_Roast_Colab.ipynb](https://colab.research.google.com/github/fimln/rfpp-project/blob/main/notebooks/Coffee_Roast_Colab.ipynb), lalu **Runtime > Run all**. Notebook mengambil kode dan `requirements.txt` langsung dari repository publik ini, tanpa menyimpan salinan source di dalam sel. Default `REVISION = 'main'`; ganti dengan SHA commit untuk memakai versi tertentu. Commit yang digunakan dicetak dan disimpan dalam `outputs/source_commit.txt`.
-
-Sel berurutan mengambil source, memasang dependensi/Git LFS, mengunduh dan mengekstrak dataset, menjalankan tes, melatih model, lalu menampilkan grafik akurasi/macro F1, confusion matrix, dan kesimpulan otomatis. Semua hasil visualisasi berasal dari run training saat itu; hasil lama dibatalkan sebelum training dan tidak ditampilkan jika training gagal. Grafik dan kesimpulan juga masuk ZIP hasil unduhan. Folder kerja Colab: `/content/rfpp-project`.
+Pindahkan/import [notebooks/Coffee_Roast_Colab.ipynb](https://colab.research.google.com/github/fimln/rfpp-project/blob/main/notebooks/Coffee_Roast_Colab.ipynb) ke Google Colab, lalu **Runtime > Run all**. Notebook mengambil kode dan `requirements.txt` langsung dari repository tanpa menyimpan salinan source di dalam sel.
 
 ## Metode
 
